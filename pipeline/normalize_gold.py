@@ -4,8 +4,8 @@ SDP Gold Layer — OCSF-normalized streaming tables (Delta sinks).
 Maps the flattened silver GitHub events to three OCSF v1.7.0 event classes:
 
   1. API Activity         (class_uid 6003)  — all GitHub events as API calls
-  2. Account Change       (class_uid 3001)  — MemberEvent → user/role changes
-  3. File System Activity (class_uid 1001)  — PushEvent   → file modifications
+  2. Entity Management    (class_uid 3004)  — resource CRUD (branches, tags, repos, releases)
+  3. File System Activity (class_uid 1001)  — PushEvent → file modifications
 
 Each gold table is a streaming table with an append flow that reads from
 the silver streaming table and writes OCSF-normalized records into the
@@ -148,57 +148,52 @@ def api_activity_flow():
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 2) Account Change  (class_uid 3001) — Delta sink
+# 2) Entity Management  (class_uid 3004) — Delta sink
 # ═══════════════════════════════════════════════════════════════════════════
 
+_ENTITY_MGMT_ACTIVITY_MAP = {
+    "CreateEvent":  "1",   # Create
+    "DeleteEvent":  "4",   # Delete
+    "ForkEvent":    "1",   # Create
+    "ReleaseEvent": "1",   # Create
+    "PublicEvent":  "3",   # Update
+}
+
+_ENTITY_MGMT_ACTIVITY_NAME_MAP = {
+    "1": "Create",
+    "3": "Update",
+    "4": "Delete",
+}
+
 sdp.create_sink(
-    name="account_change",
+    name="entity_management",
     format="delta",
-    options={"tableName": FQN["account_change"]},
+    options={"tableName": FQN["entity_management"]},
 )
 
-@sdp.append_flow(target="account_change")
-def account_change_flow():
+@sdp.append_flow(target="entity_management")
+def entity_management_flow():
+    activity_id_expr = _build_case_expr(_ENTITY_MGMT_ACTIVITY_MAP, "event_type", "99")
+    activity_name_expr = _build_case_expr(
+        {v: _ENTITY_MGMT_ACTIVITY_NAME_MAP.get(v, "Other") for v in set(_ENTITY_MGMT_ACTIVITY_MAP.values())},
+        f"({activity_id_expr})",
+        "Other",
+    )
+
     return (
         spark.readStream
         .table(TABLES["silver"])
-        .where("event_type IN ('MemberEvent', 'WatchEvent', 'ForkEvent')")
+        .where("event_type IN ('CreateEvent', 'DeleteEvent', 'ForkEvent', 'ReleaseEvent', 'PublicEvent')")
         .selectExpr(
             # ── classification ──
-            f"{OCSF['class']['account_change']}                 AS class_uid",
-            "'Account Change'                                   AS class_name",
+            f"{OCSF['class']['entity_management']}              AS class_uid",
+            "'Entity Management'                                AS class_name",
             f"{OCSF['category']['iam']}                         AS category_uid",
             "'Identity & Access Management'                     AS category_name",
-            """CASE
-                WHEN event_type = 'MemberEvent' AND payload_action = 'added'   THEN 1
-                WHEN event_type = 'MemberEvent' AND payload_action = 'removed' THEN 6
-                WHEN event_type = 'WatchEvent'  THEN 1
-                WHEN event_type = 'ForkEvent'   THEN 1
-                ELSE 99
-            END                                                 AS activity_id""",
-            """CASE
-                WHEN event_type = 'MemberEvent' AND payload_action = 'added'   THEN 'Create'
-                WHEN event_type = 'MemberEvent' AND payload_action = 'removed' THEN 'Delete'
-                WHEN event_type = 'WatchEvent'  THEN 'Create'
-                WHEN event_type = 'ForkEvent'   THEN 'Create'
-                ELSE 'Other'
-            END                                                 AS activity_name""",
-            f"""CAST({OCSF['class']['account_change']} * 100 +
-                CASE
-                    WHEN event_type = 'MemberEvent' AND payload_action = 'added'   THEN 1
-                    WHEN event_type = 'MemberEvent' AND payload_action = 'removed' THEN 6
-                    WHEN event_type = 'WatchEvent'  THEN 1
-                    WHEN event_type = 'ForkEvent'   THEN 1
-                    ELSE 99
-                END AS BIGINT)                                  AS type_uid""",
-            """CONCAT('Account Change: ',
-                CASE
-                    WHEN event_type = 'MemberEvent' AND payload_action = 'added'   THEN 'Create'
-                    WHEN event_type = 'MemberEvent' AND payload_action = 'removed' THEN 'Delete'
-                    WHEN event_type = 'WatchEvent'  THEN 'Create'
-                    WHEN event_type = 'ForkEvent'   THEN 'Create'
-                    ELSE 'Other'
-                END)                                            AS type_name""",
+            f"CAST({activity_id_expr} AS INT)                   AS activity_id",
+            f"{activity_name_expr}                              AS activity_name",
+            f"CAST({OCSF['class']['entity_management']} * 100 + CAST({activity_id_expr} AS INT) AS BIGINT) AS type_uid",
+            f"CONCAT('Entity Management: ', {activity_name_expr}) AS type_name",
             "1                                                  AS severity_id",
             "'Informational'                                    AS severity",
 
@@ -210,14 +205,24 @@ def account_change_flow():
             "'Success'                                          AS status",
             "1                                                  AS status_id",
 
-            # ── user (target of the change — member for MemberEvent, actor for Watch/Fork) ──
+            # ── entity (managed entity being acted upon) ──
             """named_struct(
-                'name', CASE WHEN event_type = 'MemberEvent' THEN member_login ELSE actor_login END,
-                'uid',  CASE WHEN event_type = 'MemberEvent' THEN CAST(member_id AS STRING) ELSE CAST(actor_id AS STRING) END,
-                'type', CASE WHEN event_type = 'MemberEvent' THEN member_type ELSE 'User' END
-            ) AS user""",
+                'name', CASE
+                    WHEN event_type IN ('CreateEvent', 'DeleteEvent') AND payload_ref IS NOT NULL THEN payload_ref
+                    ELSE repo_name
+                END,
+                'uid',  CAST(repo_id AS STRING),
+                'type', CASE
+                    WHEN event_type IN ('CreateEvent', 'DeleteEvent') THEN COALESCE(payload_ref_type, 'repository')
+                    WHEN event_type = 'ForkEvent'    THEN 'repository'
+                    WHEN event_type = 'ReleaseEvent' THEN 'release'
+                    WHEN event_type = 'PublicEvent'   THEN 'repository'
+                    ELSE 'unknown'
+                END,
+                'data', CAST(NULL AS STRING)
+            ) AS entity""",
 
-            # ── actor (who performed the change) ──
+            # ── actor ──
             "named_struct('user', named_struct('name', actor_login, 'uid', CAST(actor_id AS STRING), 'url', actor_url)) AS actor",
 
             # ── source endpoint ──
@@ -225,9 +230,11 @@ def account_change_flow():
 
             # ── message ──
             """CASE
-                WHEN event_type = 'MemberEvent' THEN CONCAT(actor_login, ' ', payload_action, ' member ', member_login, ' on ', repo_name)
-                WHEN event_type = 'WatchEvent'  THEN CONCAT(actor_login, ' starred ', repo_name)
-                WHEN event_type = 'ForkEvent'   THEN CONCAT(actor_login, ' forked ', repo_name)
+                WHEN event_type = 'CreateEvent'  THEN CONCAT(actor_login, ' created ', COALESCE(payload_ref_type, 'repository'), ' ', COALESCE(payload_ref, repo_name), ' in ', repo_name)
+                WHEN event_type = 'DeleteEvent'  THEN CONCAT(actor_login, ' deleted ', COALESCE(payload_ref_type, 'ref'), ' ', COALESCE(payload_ref, ''), ' in ', repo_name)
+                WHEN event_type = 'ForkEvent'    THEN CONCAT(actor_login, ' forked ', repo_name)
+                WHEN event_type = 'ReleaseEvent' THEN CONCAT(actor_login, ' published a release on ', repo_name)
+                WHEN event_type = 'PublicEvent'  THEN CONCAT(actor_login, ' made ', repo_name, ' public')
                 ELSE CONCAT(actor_login, ' performed ', event_type, ' on ', repo_name)
             END                                                 AS message""",
 
@@ -239,10 +246,12 @@ def account_change_flow():
 
             # ── unmapped (single VARIANT) ──
             """parse_json(to_json(named_struct(
-                'repo_name',  repo_name,
-                'repo_id',    CAST(repo_id AS STRING),
-                'org_login',  org_login,
-                'event_id',   event_id
+                'payload_action',   payload_action,
+                'payload_ref',      payload_ref,
+                'payload_ref_type', payload_ref_type,
+                'repo_url',         repo_url,
+                'org_login',        org_login,
+                'event_id',         event_id
             )))                                                 AS unmapped""",
         )
     )

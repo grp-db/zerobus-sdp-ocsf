@@ -18,7 +18,7 @@ UC = {
 TABLES = {
     "bronze":               "github_events_bronze",
     "api_activity":         "api_activity",
-    "account_change":       "account_change",
+    "entity_management":    "entity_management",
     "file_system_activity": "file_system_activity",
 }
 
@@ -28,7 +28,7 @@ TABLES = {
 FQN = {
     "bronze":               f"{UC['catalog']}.{UC['bronze_database']}.{TABLES['bronze']}",
     "api_activity":         f"{UC['catalog']}.{UC['gold_database']}.{TABLES['api_activity']}",
-    "account_change":       f"{UC['catalog']}.{UC['gold_database']}.{TABLES['account_change']}",
+    "entity_management":    f"{UC['catalog']}.{UC['gold_database']}.{TABLES['entity_management']}",
     "file_system_activity": f"{UC['catalog']}.{UC['gold_database']}.{TABLES['file_system_activity']}",
 }
 

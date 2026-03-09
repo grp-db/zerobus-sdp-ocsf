@@ -1,5 +1,5 @@
 """
-DDLs for the three OCSF gold Delta tables.
+DDLs for the OCSF gold Delta tables.
 
 Run this once before deploying the SDP pipeline so the gold tables exist
 as Delta sinks in cyber_lakehouse.ocsf.
@@ -91,10 +91,10 @@ COMMENT 'OCSF v1.7.0 API Activity (6003) — all GitHub public events as API cal
 """
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 2) Account Change  (class_uid 3001)
+# 2) Entity Management  (class_uid 3004)
 # ═══════════════════════════════════════════════════════════════════════════
-DDL_ACCOUNT_CHANGE = f"""
-CREATE TABLE IF NOT EXISTS {FQN['account_change']} (
+DDL_ENTITY_MANAGEMENT = f"""
+CREATE TABLE IF NOT EXISTS {FQN['entity_management']} (
     -- classification
     class_uid       INT,
     class_name      STRING,
@@ -115,10 +115,10 @@ CREATE TABLE IF NOT EXISTS {FQN['account_change']} (
     status          STRING,
     status_id       INT,
 
-    -- user (target of the change)
-    user                STRUCT<name: STRING, uid: STRING, type: STRING>,
+    -- entity (managed entity being acted upon)
+    entity              STRUCT<name: STRING, uid: STRING, type: STRING, data: STRING>,
 
-    -- actor (who performed the change)
+    -- actor
     actor               {_ACTOR_TYPE},
 
     -- source endpoint
@@ -148,7 +148,7 @@ TBLPROPERTIES (
   'delta.feature.invariants' = 'supported',
   'otel.schemaVersion' = 'v2'
 )
-COMMENT 'OCSF v1.7.0 Account Change (3001) — GitHub MemberEvent user/role changes'
+COMMENT 'OCSF v1.7.0 Entity Management (3004) — GitHub resource CRUD (branches, tags, repos, releases)'
 ;
 """
 
@@ -214,7 +214,7 @@ COMMENT 'OCSF v1.7.0 File System Activity (1001) — GitHub PushEvent file modif
 ;
 """
 
-ALL_DDLS = [DDL_API_ACTIVITY, DDL_ACCOUNT_CHANGE, DDL_FILE_SYSTEM_ACTIVITY]
+ALL_DDLS = [DDL_API_ACTIVITY, DDL_ENTITY_MANAGEMENT, DDL_FILE_SYSTEM_ACTIVITY]
 
 if __name__ == "__main__":
     for ddl in ALL_DDLS:
@@ -227,7 +227,7 @@ if __name__ == "__main__":
                 if stmt:
                     spark.sql(stmt)
         print(f"✓  {FQN['api_activity']} created")
-        print(f"✓  {FQN['account_change']} created")
+        print(f"✓  {FQN['entity_management']} created")
         print(f"✓  {FQN['file_system_activity']} created")
     except NameError:
         print("(spark session not available — copy the DDLs above into a Databricks notebook)")

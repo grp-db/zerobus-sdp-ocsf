@@ -1,11 +1,11 @@
 # Zerobus + SDP Cyber Lakehouse Pipeline
 
-End-to-end pipeline that ingests GitHub public events via **Databricks Zerobus**, processes them through a **Spark Declarative Pipelines (SDP)** medallion architecture, and normalizes to **OCSF v1.7.0** gold tables.
+End-to-end pipeline that ingests GitHub public events via **Databricks Zerobus**, processes them through a **Spark Declarative Pipelines (SDP)** medallion architecture, and normalizes to **OCSF v1.7.0** gold tables (API Activity, Entity Management, File System Activity).
 
 ## Architecture
 
 ```
-GitHub Events API → Zerobus → SDP Pipeline [ bronze → silver → api_activity (6003) / account_change (3001) / file_system_activity (1001) ]
+GitHub Events API → Zerobus → SDP Pipeline [ bronze → silver → api_activity (6003) / entity_management (3004) / file_system_activity (1001) ]
 ```
 
 ### Pipeline Graph
@@ -17,7 +17,7 @@ GitHub Events API → Zerobus → SDP Pipeline [ bronze → silver → api_activ
 | Gold Table | OCSF Class | class_uid | GitHub Events |
 |---|---|---|---|
 | `api_activity` | API Activity | 6003 | All events |
-| `account_change` | Account Change | 3001 | MemberEvent |
+| `entity_management` | Entity Management | 3004 | CreateEvent, DeleteEvent, ForkEvent, ReleaseEvent, PublicEvent |
 | `file_system_activity` | File System Activity | 1001 | PushEvent |
 
 ## Prerequisites
@@ -73,7 +73,7 @@ OCSF = { "version": "1.7.0", "category": { ... }, "class": { ... } }
 
 ```python
 UC = { "catalog": "cyber_lakehouse", "bronze_database": "github", "gold_database": "ocsf" }
-TABLES = { "bronze": "github_events_bronze", "api_activity": "api_activity", ... }
+TABLES = { "bronze": "github_events_bronze", "api_activity": "api_activity", "file_system_activity": ... }
 FQN = { "bronze": "cyber_lakehouse.github.github_events_bronze", ... }
 GITHUB = { "events_url": "https://api.github.com/events", "source": "github", ... }
 ZEROBUS = { "workspace_url": "<your-workspace-url>", "workspace_id": "<your-workspace-id>", ... }
@@ -194,7 +194,6 @@ GRANT USE CATALOG ON CATALOG cyber_lakehouse TO `<service-principal-application-
 
 -- database access
 GRANT USE DATABASE ON DATABASE cyber_lakehouse.github TO `<service-principal-application-id>`;
-GRANT USE DATABASE ON DATABASE cyber_lakehouse.ocsf TO `<service-principal-application-id>`;
 
 -- read/write table access
 GRANT SELECT, MODIFY ON TABLE cyber_lakehouse.github.github_events_bronze TO `<service-principal-application-id>`;
@@ -245,7 +244,7 @@ Query the gold tables:
 
 ```sql
 SELECT * FROM cyber_lakehouse.ocsf.api_activity LIMIT 10;
-SELECT * FROM cyber_lakehouse.ocsf.account_change LIMIT 10;
+SELECT * FROM cyber_lakehouse.ocsf.entity_management LIMIT 10;
 SELECT * FROM cyber_lakehouse.ocsf.file_system_activity LIMIT 10;
 ```
 
@@ -261,7 +260,7 @@ SELECT * FROM cyber_lakehouse.ocsf.file_system_activity LIMIT 10;
 
 - **OCSF (Open Cybersecurity Schema Framework)**
   - [OCSF Schema Browser (v1.7.0)](https://schema.ocsf.io/1.7.0/)
-  - [IAM Category](https://schema.ocsf.io/1.7.0/categories/iam) — Account Change (3001)
+  - [IAM Category](https://schema.ocsf.io/1.7.0/categories/iam) — Entity Management (3004)
   - [System Activity Category](https://schema.ocsf.io/1.7.0/categories/system) — File System Activity (1001)
   - [Application Activity Category](https://schema.ocsf.io/1.7.0/categories/application) — API Activity (6003)
   - [OCSF GitHub](https://github.com/ocsf)
