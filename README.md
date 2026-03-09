@@ -30,7 +30,6 @@ GitHub Events API → Zerobus → SDP Pipeline [ bronze → silver → api_activ
 ## File Overview
 
 ```
-zerobus_sdp/
 ├── pipeline/                    ← SDP source (point pipeline here)
 │   ├── utils_pipeline.py
 │   ├── ingest_bronze.py
@@ -66,7 +65,7 @@ Both config files use dictionaries to organize variables:
 UC = { "catalog": "cyber_lakehouse", "bronze_database": "github", ... }
 TABLES = { "bronze": "github_events_bronze", "silver": "github_events_silver", ... }
 FQN = { "bronze": "cyber_lakehouse.github.github_events_bronze", ... }
-TABLE_PROPERTIES = { "delta.autoOptimize.optimizeWrite": "true", ... }
+TABLE_PROPERTIES = { "delta.minWriterVersion": "7", "delta.enableDeletionVectors": "true", ... }
 OCSF = { "version": "1.7.0", "category": { ... }, "class": { ... } }
 ```
 
@@ -198,7 +197,7 @@ GRANT USE DATABASE ON DATABASE cyber_lakehouse.github TO `<service-principal-app
 GRANT USE DATABASE ON DATABASE cyber_lakehouse.ocsf TO `<service-principal-application-id>`;
 
 -- read/write table access
-GRANT SELECT, MODIFY ON DATABASE cyber_lakehouse.github.github_events_bronze TO `<service-principal-application-id>`;
+GRANT SELECT, MODIFY ON TABLE cyber_lakehouse.github.github_events_bronze TO `<service-principal-application-id>`;
 ```
 
 > **Note:** Use the service principal's **Application ID (UUID)**, not the display name. Find it under **Settings** → **Identity and access** → **Service principals** → click your SP.
