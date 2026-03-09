@@ -5,31 +5,12 @@ End-to-end pipeline that ingests GitHub public events via **Databricks Zerobus**
 ## Architecture
 
 ```
-GitHub Events API
-       │
-       ▼
-  push_zerobus.py              ← Zerobus SDK (JSON mode)
-       │
-       ▼
-  github_events_bronze         ← external Delta table (Zerobus target)
-       │
-       ▼
-┌──────────────────────────────────────────────────┐
-│  SDP Pipeline                                    │
-│                                                  │
-│  github_events_bronze   (ingest_bronze.py view)  │
-│         │                                        │
-│         ▼                                        │
-│  github_events_silver   (flatten_silver.py)      │
-│         │                                        │
-│    ┌────┼────────────┐                           │
-│    ▼    ▼            ▼                           │
-│  api_activity  account_change  file_system_activity │
-│  (6003)        (3001)          (1001)            │
-│                                                  │
-│  normalize_gold.py  →  Delta sinks (ocsf)        │
-└──────────────────────────────────────────────────┘
+GitHub Events API → Zerobus → SDP Pipeline [ bronze → silver → api_activity (6003) / account_change (3001) / file_system_activity (1001) ]
 ```
+
+### Pipeline Graph
+
+![Pipeline Graph](pipeline_graph.png)
 
 ## OCSF Event Classes
 
