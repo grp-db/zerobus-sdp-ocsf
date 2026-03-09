@@ -268,3 +268,20 @@ SELECT * FROM cyber_lakehouse.ocsf.api_activity LIMIT 10;
 SELECT * FROM cyber_lakehouse.ocsf.account_change LIMIT 10;
 SELECT * FROM cyber_lakehouse.ocsf.file_system_activity LIMIT 10;
 ```
+
+## Documentation
+
+- **Databricks Zerobus**
+  - [Zerobus Python SDK (GitHub)](https://github.com/databricks/zerobus-sdk-py)
+  - [Zerobus Ingest Documentation](https://docs.databricks.com/en/ingestion/zerobus/index.html)
+
+- **Spark Declarative Pipelines (SDP)**
+  - [SDP Programming Guide](https://spark.apache.org/docs/latest/declarative-pipelines-programming-guide.html)
+  - [Lakeflow Declarative Pipelines](https://docs.databricks.com/en/lakeflow-declarative-pipelines/index.html)
+
+- **OCSF (Open Cybersecurity Schema Framework)**
+  - [OCSF Schema Browser (v1.7.0)](https://schema.ocsf.io/1.7.0/)
+  - [IAM Category](https://schema.ocsf.io/1.7.0/categories/iam) — Account Change (3001)
+  - [System Activity Category](https://schema.ocsf.io/1.7.0/categories/system) — File System Activity (1001)
+  - [Application Activity Category](https://schema.ocsf.io/1.7.0/categories/application) — API Activity (6003)
+  - [OCSF GitHub](https://github.com/ocsf)
