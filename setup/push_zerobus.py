@@ -27,21 +27,25 @@ RUN_DURATION_SEC = 5 * 60
 
 
 def _epoch_micros(iso_str: str) -> int:
+    """Convert ISO-8601 timestamp to microseconds since epoch (TIMESTAMP)."""
     dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
     return int(dt.timestamp() * 1_000_000)
 
 
 def _epoch_days(iso_str: str) -> int:
+    """Convert ISO-8601 timestamp to days since epoch (DATE)."""
     dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
     epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
     return (dt - epoch).days
 
 
 def _now_micros() -> int:
+    """Return current UTC time as microseconds since epoch."""
     return int(datetime.now(timezone.utc).timestamp() * 1_000_000)
 
 
 def fetch_github_events(etag=None):
+    """Fetch the latest page of public GitHub events, respecting ETags for dedup."""
     import requests
     headers = {"Accept": "application/vnd.github+json"}
     if etag:
@@ -58,6 +62,7 @@ def fetch_github_events(etag=None):
 
 
 def build_bronze_record(event: dict) -> dict:
+    """Shape a raw GitHub event into the bronze table schema."""
     created_at = event.get("created_at", datetime.now(timezone.utc).isoformat())
     return {
         "data": json.dumps(event),
@@ -71,6 +76,7 @@ def build_bronze_record(event: dict) -> dict:
 
 
 def main() -> None:
+    """Poll GitHub Events API and push bronze records to Zerobus in a loop."""
     import subprocess, sys
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q",
                            "databricks-zerobus-ingest-sdk", "requests"])

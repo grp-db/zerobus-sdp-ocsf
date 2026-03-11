@@ -85,6 +85,7 @@ sdp.create_sink(
 
 @sdp.append_flow(target="api_activity")
 def api_activity_flow():
+    """Stream all silver events into the API Activity (6003) Delta sink."""
     activity_id_expr = _build_case_expr(_API_ACTIVITY_MAP, "event_type", "99")
     activity_name_expr = _build_case_expr(
         {v: _API_ACTIVITY_NAME_MAP.get(v, "Other") for v in set(_API_ACTIVITY_MAP.values())},
@@ -173,6 +174,7 @@ sdp.create_sink(
 
 @sdp.append_flow(target="entity_management")
 def entity_management_flow():
+    """Stream resource CRUD events into the Entity Management (3004) Delta sink."""
     activity_id_expr = _build_case_expr(_ENTITY_MGMT_ACTIVITY_MAP, "event_type", "99")
     activity_name_expr = _build_case_expr(
         {v: _ENTITY_MGMT_ACTIVITY_NAME_MAP.get(v, "Other") for v in set(_ENTITY_MGMT_ACTIVITY_MAP.values())},
@@ -269,6 +271,7 @@ sdp.create_sink(
 
 @sdp.append_flow(target="file_system_activity")
 def file_system_activity_flow():
+    """Stream PushEvent records into the File System Activity (1001) Delta sink."""
     return (
         spark.readStream
         .table(TABLES["silver"])

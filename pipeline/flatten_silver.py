@@ -17,6 +17,7 @@ from utils_pipeline import TABLES, TABLE_PROPERTIES
     table_properties=TABLE_PROPERTIES,
 )
 def github_events_silver():
+    """Flatten variant bronze data into typed silver columns."""
     return (
         spark.readStream
         .table(TABLES["bronze"])

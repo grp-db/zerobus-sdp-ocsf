@@ -13,4 +13,5 @@ from utils_pipeline import TABLES, FQN
 
 @sdp.temporary_view(name=TABLES["bronze"])
 def github_events_bronze():
+    """Passthrough view over the Zerobus-populated bronze table."""
     return spark.readStream.table(FQN["bronze"])
