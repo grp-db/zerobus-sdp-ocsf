@@ -264,14 +264,14 @@ Alternatively, add the pipeline as a task in a **Databricks Job** for more contr
 
 ### Resetting streaming checkpoints
 
-If you modify gold table logic and need to reprocess data, you can [reset streaming flow checkpoints](https://docs.databricks.com/aws/en/ldp/updates#start-a-pipeline-update-to-clear-selective-streaming-flows-checkpoints) via the REST API without performing a full refresh on the bronze and silver streaming tables. Use the fully qualified flow path as `catalog.schema.table` (e.g. `cyber_lakehouse.ocsf.api_activity`):
+Gold table OCSF logic or DDL changes may require reprocessing data. [Resetting streaming flow checkpoints](https://docs.databricks.com/aws/en/ldp/updates#start-a-pipeline-update-to-clear-selective-streaming-flows-checkpoints) via the REST API avoids a full refresh on the bronze and silver streaming tables. Use the fully qualified flow path as `catalog.schema.table` (e.g. `cyber_lakehouse.ocsf.api_activity`):
 
 ```bash
 curl -X POST \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "reset_checkpoint_selection": ["catalog.schema.table"]
+    "reset_checkpoint_selection": ["<catalog.schema.table>"]
   }' \
   https://<your-workspace>.cloud.databricks.com/api/2.0/pipelines/<your-pipeline-id>/updates
 ```
