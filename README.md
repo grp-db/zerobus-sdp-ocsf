@@ -1,6 +1,6 @@
 # Zerobus + SDP Cyber Lakehouse Pipeline
 
-End-to-end pipeline that ingests GitHub public events via **Databricks Zerobus**, processes them through a **Spark Declarative Pipelines (SDP)** medallion architecture, and normalizes to **OCSF v1.7.0** gold tables (API Activity, Entity Management, File System Activity).
+End-to-end pipeline that ingests [GitHub public events](https://docs.github.com/en/rest/using-the-rest-api/github-event-types) via **Databricks Zerobus**, processes them through a **Spark Declarative Pipelines (SDP)** [medallion architecture](https://docs.databricks.com/en/lakehouse/medallion.html), and normalizes to **[OCSF v1.7.0](https://schema.ocsf.io/1.7.0/)** gold tables (API Activity, Entity Management, File System Activity).
 
 ## Architecture
 
@@ -23,8 +23,8 @@ GitHub Events API → Zerobus → SDP Pipeline [ bronze → silver → api_activ
 ## Prerequisites
 
 - Databricks workspace with Zerobus access enabled
-- Service principal with OAuth credentials (client_id / client_secret)
-- Databricks CLI installed (`pip install databricks-cli`)
+- [Service principal](https://docs.databricks.com/en/admin/users-groups/service-principals.html) with OAuth credentials (client_id / client_secret)
+- [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/install.html) installed (`pip install databricks-cli`)
 - Python 3.9+
 
 ## File Overview
@@ -159,7 +159,7 @@ ZEROBUS = {
 Run `setup/ddl_bronze.py` as a Databricks notebook or execute the SQL manually.
 
 > **Important:** Zerobus does not support tables in default metastore storage.
-> The catalog or schema must have an explicit **managed storage location**.
+> The catalog or schema must have an explicit **[managed storage location](https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-create-schema.html)**.
 > If your catalog uses default storage, set a managed location on the schema:
 >
 > ```sql
@@ -184,6 +184,8 @@ CREATE TABLE IF NOT EXISTS cyber_lakehouse.github.github_events_bronze (
 USING DELTA
 TBLPROPERTIES ('delta.feature.variantType-preview' = 'supported');
 ```
+
+> The `data` column uses the [VARIANT](https://docs.databricks.com/en/sql/language-manual/data-types/variant-type.html) type, which stores semi-structured JSON natively in Delta.
 
 ### 5. Grant service principal permissions
 
