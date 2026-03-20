@@ -73,7 +73,7 @@ OCSF = { "version": "1.7.0", "category": { ... }, "class": { ... } }
 
 ```python
 UC = { "catalog": "cyber_lakehouse", "bronze_database": "github", "gold_database": "ocsf" }
-TABLES = { "bronze": "github_events_bronze", "api_activity": "api_activity", "file_system_activity": ... }
+TABLES = { "bronze": "github_events_bronze", "api_activity": "api_activity", "entity_management": ..., "file_system_activity": ... }
 FQN = { "bronze": "cyber_lakehouse.github.github_events_bronze", ... }
 GITHUB = { "events_url": "https://api.github.com/events", "source": "github", ... }
 ZEROBUS = { "workspace_url": "<your-workspace-url>", "workspace_id": "<your-workspace-id>", ... }
@@ -261,6 +261,20 @@ To run the pipeline on a recurring schedule:
 4. Click **Save**
 
 Alternatively, add the pipeline as a task in a **Databricks Job** for more control over triggers, retries, and notifications. See [Pipeline task for jobs](https://docs.databricks.com/aws/en/jobs/pipeline) for details.
+
+### Resetting streaming checkpoints
+
+If you modify gold table logic and need to reprocess data, you can [reset streaming flow checkpoints](https://docs.databricks.com/aws/en/ldp/updates#start-a-pipeline-update-to-clear-selective-streaming-flows-checkpoints) via the REST API without performing a full refresh on the bronze and silver streaming tables. Use the fully qualified flow path as `catalog.schema.table` (e.g. `cyber_lakehouse.ocsf.api_activity`):
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reset_checkpoint_selection": ["catalog.schema.table"]
+  }' \
+  https://<your-workspace>.cloud.databricks.com/api/2.0/pipelines/<your-pipeline-id>/updates
+```
 
 ## Documentation
 
