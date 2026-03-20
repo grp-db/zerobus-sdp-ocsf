@@ -90,6 +90,7 @@ ZEROBUS = { "workspace_url": "<your-workspace-url>", "workspace_id": "<your-work
 7. [Start the Zerobus producer](#7-start-the-zerobus-producer)
 8. [Deploy the SDP pipeline](#8-deploy-the-sdp-pipeline)
 9. [Verify](#9-verify)
+10. [Schedule the pipeline](#10-schedule-the-pipeline)
 
 ---
 
@@ -247,6 +248,17 @@ SELECT * FROM cyber_lakehouse.ocsf.api_activity LIMIT 10;
 SELECT * FROM cyber_lakehouse.ocsf.entity_management LIMIT 10;
 SELECT * FROM cyber_lakehouse.ocsf.file_system_activity LIMIT 10;
 ```
+
+### 10. Schedule the pipeline
+
+To run the pipeline on a recurring schedule:
+
+1. Go to **Jobs & Pipelines** and select your pipeline
+2. Click **Schedule** → **Add schedule**
+3. Set a cron expression or interval (e.g. every 15 minutes, hourly)
+4. Click **Save**
+
+Alternatively, add the pipeline as a task in a **Databricks Job** for more control over triggers, retries, and notifications. See [Pipeline task for jobs](https://docs.databricks.com/aws/en/jobs/pipeline) for details.
 
 ## Documentation
 
